@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPW Monitor — Paws76</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #171b25;
+    --surface2: #1e2433;
+    --border: #2a3045;
+    --border2: #3a4560;
+    --accent: #4f8ef7;
+    --accent2: #2563c7;
+    --text: #e8ecf4;
+    --text2: #8a9ab8;
+    --text3: #4a5570;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--text3); margin: 0 6px; }
+
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  .btn-add {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: background 0.15s;
+  }
+  .btn-add:hover { background: var(--accent2); }
+
+  .spolka-list { flex: 1; overflow-y: auto; padding: 0.5rem 0; }
+
+  .spolka-item {
+    padding: 0.6rem 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-left: 3px solid transparent;
+    transition: all 0.1s;
+    gap: 8px;
+  }
+  .spolka-item:hover { background: var(--surface2); }
+  .spolka-item.active {
+    background: var(--surface2);
+    border-left-color: var(--accent);
+  }
+
+  .spolka-ticker {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 60px;
+  }
+
+  .spolka-name {
+    font-size: 12px;
+    color: var(--text2);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .spolka-market {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    background: var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .spolka-del {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .spolka-item:hover .spolka-del { opacity: 1; }
+  .spolka-del:hover { color: var(--red); }
+
+  /* ADD FORM */
+  .add-form {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border);
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .add-form.open { display: flex; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 6px 8px;
+    width: 100%;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text3); }
+
+  select option { background: var(--surface2); }
+
+  .form-btns { display: flex; gap: 6px; }
+  .btn-confirm {
+    flex: 1;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .btn-confirm:hover { background: var(--accent2); }
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .btn-cancel:hover { border-color: var(--text2); }
+
+  /* MAIN CONTENT */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    gap: 8px;
+    font-size: 13px;
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 4px; }
+
+  /* SPOLKA DETAIL */
+  .detail { display: flex; flex-direction: column; flex: 1; }
+
+  .detail-header {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .detail-ticker {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .detail-name {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .detail-badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .badge-market { background: #1e2d4a; color: #4f8ef7; }
+  .badge-sektor { background: #1e3028; color: #22c55e; }
+
+  /* PROMPTS SECTION */
+  .prompts-section {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-bottom: 0.75rem;
+  }
+
+  .prompt-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn-prompt {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text2);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-prompt:hover { border-color: var(--accent); color: var(--accent); background: #1a2140; }
+  .btn-prompt .pico { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  .prompt-preview {
+    margin-top: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.75rem 1rem;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+    max-height: 100px;
+    overflow: hidden;
+    position: relative;
+    display: none;
+  }
+  .prompt-preview.open { display: block; }
+  .prompt-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(transparent, var(--bg));
+  }
+
+  .copy-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0.5rem;
+  }
+  .copy-bar.open { display: flex; }
+
+  .btn-copy {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: background 0.15s;
+  }
+  .btn-copy:hover { background: var(--accent2); }
+  .btn-copy.copied { background: #16a34a; }
+
+  .copy-hint {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* RAPORTY TABS */
+  .reports-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+  .tabs-bar {
+    padding: 0 1.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 44px;
+  }
+
+  .tabs { display: flex; gap: 0; }
+
+  .tab {
+    padding: 0 14px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: var(--mono);
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-count {
+    background: var(--border);
+    color: var(--text3);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 10px;
+    margin-left: 5px;
+  }
+
+  .btn-new-report {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    white-space: nowrap;
+  }
+  .btn-new-report:hover { border-color: var(--accent); color: var(--accent); }
+
+  .reports-content { flex: 1; overflow-y: auto; padding: 1.25rem 1.75rem; }
+
+  /* REPORT CARDS */
+  .report-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .report-card-header {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .report-card-header:hover { background: var(--surface2); }
+
+  .report-meta { display: flex; align-items: center; gap: 10px; }
+
+  .report-type-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .rt-pelny { background: #1a2d4a; color: #4f8ef7; }
+  .rt-espi { background: #1e3028; color: #22c55e; }
+  .rt-rekomendacje { background: #2d2210; color: #f59e0b; }
+  .rt-sentyment { background: #2d2210; color: #f59e0b; }
+  .rt-inne { background: #2a1e2e; color: #a855f7; }
+
+  .report-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .report-sentiment {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .sentiment-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .s1 { background: #ef4444; }
+  .s2 { background: #f97316; }
+  .s3 { background: #f59e0b; }
+  .s4 { background: #84cc16; }
+  .s5 { background: #22c55e; }
+
+  .report-actions { display: flex; gap: 6px; }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: all 0.1s;
+  }
+  .btn-icon:hover { background: var(--border); color: var(--text); }
+  .btn-icon.del:hover { color: var(--red); }
+
+  .report-body {
+    padding: 1rem;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text2);
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .report-body.open { display: block; }
+
+  .report-body h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    margin: 1rem 0 0.4rem;
+    font-weight: 500;
+  }
+  .report-body h3:first-child { margin-top: 0; }
+  .report-body p { color: var(--text2); }
+  .report-body strong { color: var(--text); font-weight: 500; }
+
+  /* ADD REPORT FORM */
+  .add-report-form {
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--surface);
+    display: none;
+  }
+  .add-report-form.open { display: block; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+
+  .form-label {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-bottom: 3px;
+    display: block;
+  }
+
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px;
+    width: 100%;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text3); }
+
+  .add-report-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+
+  /* NOTATKA */
+  .notatka-section {
+    padding: 1rem 1.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .notatka-toggle {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    user-select: none;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .notatka-toggle:hover { color: var(--text2); }
+
+  .notatka-edit { margin-top: 0.5rem; display: none; }
+  .notatka-edit.open { display: block; }
+
+  .notatka-save {
+    margin-top: 6px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .notatka-save:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  /* EMPTY REPORTS */
+  .no-reports {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GPW Monitor <span>/</span> Paws76</div>
+  <div class="header-meta" id="clock">—</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Spółki</span>
+      <button class="btn-add" onclick="toggleAddForm()">+ Dodaj</button>
+    </div>
+
+    <div class="spolka-list" id="spolkaList"></div>
+
+    <div class="add-form" id="addForm">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Ticker</label>
+          <input id="newTicker" placeholder="np. GALVO" style="text-transform:uppercase">
+        </div>
+        <div>
+          <label class="form-label">Rynek</label>
+          <select id="newMarket">
+            <option value="NC">NewConnect</option>
+            <option value="GPW">GPW</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Nazwa spółki</label>
+        <input id="newName" placeholder="np. Galvo SA">
+      </div>
+      <div>
+        <label class="form-label">Sektor</label>
+        <input id="newSektor" placeholder="np. Produkcja przemysłowa">
+      </div>
+      <div class="form-btns">
+        <button class="btn-confirm" onclick="addSpolka()">Dodaj</button>
+        <button class="btn-cancel" onclick="toggleAddForm()">Anuluj</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainArea">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">◈</div>
+      <div>Wybierz spółkę z listy</div>
+      <div style="color: var(--text3); font-size: 12px;">lub dodaj nową klikając "+ Dodaj"</div>
+    </div>
+
+    <div class="detail" id="detailView" style="display:none;">
+      <div class="detail-header">
+        <div>
+          <div class="detail-ticker" id="dTicker">—</div>
+          <div class="detail-name" id="dName">—</div>
+          <div class="detail-badges" id="dBadges"></div>
+        </div>
+      </div>
+
+      <div class="prompts-section">
+        <div class="section-label">Generuj prompt</div>
+        <div class="prompt-btns">
+          <button class="btn-prompt" onclick="selectPrompt('pelny')">
+            <span>Raport pełny</span><span class="pico">P1</span>
+          </button>
+          <button class="btn-prompt" onclick="selectPrompt('espi')">
+            <span>Tylko ESPI/EBI</span><span class="pico">P2</span>
+          </button>
+          <button class="btn-prompt" onclick="selectPrompt('rekomendacje')">
+            <span>Rekomendacje DM</span><span class="pico">P3</span>
+          </button>
+          <button class="btn-prompt" onclick="selectPrompt('sentyment')">
+            <span>Sentyment rynku</span><span class="pico">P4</span>
+          </button>
+        </div>
+        <div class="prompt-preview" id="promptPreview"></div>
+        <div class="copy-bar" id="copyBar">
+          <button class="btn-copy" id="btnCopy" onclick="copyPrompt()">Kopiuj prompt do schowka</button>
+          <span class="copy-hint">Następnie wklej do claude.ai i uruchom</span>
+        </div>
+      </div>
+
+      <div class="reports-section">
+        <div class="tabs-bar">
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab('all', this)">
+              Wszystkie <span class="tab-count" id="tcAll">0</span>
+            </div>
+            <div class="tab" onclick="switchTab('pelny', this)">
+              Pełne <span class="tab-count" id="tcPelny">0</span>
+            </div>
+            <div class="tab" onclick="switchTab('espi', this)">
+              ESPI <span class="tab-count" id="tcEspi">0</span>
+            </div>
+            <div class="tab" onclick="switchTab('rekomendacje', this)">
+              Rekomen. <span class="tab-count" id="tcRek">0</span>
+            </div>
+          </div>
+          <button class="btn-new-report" onclick="toggleAddReport()">+ Zapisz raport</button>
+        </div>
+
+        <div class="reports-content" id="reportsContent">
+          <div class="add-report-form" id="addReportForm">
+            <div class="form-grid">
+              <div>
+                <label class="form-label">Typ raportu</label>
+                <select id="rType">
+                  <option value="pelny">Raport pełny</option>
+                  <option value="espi">ESPI/EBI</option>
+                  <option value="rekomendacje">Rekomendacje DM</option>
+                  <option value="sentyment">Sentyment</option>
+                  <option value="inne">Inne</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Sentyment (1-5)</label>
+                <select id="rSentiment">
+                  <option value="1">1 — Skrajny pesymizm</option>
+                  <option value="2">2 — Przewaga negatywna</option>
+                  <option value="3" selected>3 — Neutralny</option>
+                  <option value="4">4 — Przewaga pozytywna</option>
+                  <option value="5">5 — Euforia</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Data</label>
+                <input type="date" id="rDate">
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Treść raportu (wklej wynik z Claude)</label>
+              <textarea id="rContent" placeholder="Wklej tutaj odpowiedź wygenerowaną przez Claude..."></textarea>
+            </div>
+            <div class="add-report-actions">
+              <button class="btn-cancel" onclick="toggleAddReport()">Anuluj</button>
+              <button class="btn-confirm" onclick="saveReport()">Zapisz raport</button>
+            </div>
+          </div>
+          <div id="reportsList"></div>
+        </div>
+      </div>
+
+      <div class="notatka-section">
+        <button class="notatka-toggle" onclick="toggleNotatka()">
+          <span id="notatkaArrow">▸</span> Notatki własne
+        </button>
+        <div class="notatka-edit" id="notatkaEdit">
+          <textarea id="notatkaText" placeholder="Twoje obserwacje, hipotezy, ważne daty..." style="min-height: 80px;"></textarea>
+          <button class="notatka-save" onclick="saveNotatka()">Zapisz notatkę</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toastMsg">Skopiowano!</span>
+</div>
+
+<script>
+const PROMPTS = {
+  pelny: (ticker) => `# ROLE & CONTEXT
+Jesteś analitykiem polskiego rynku kapitałowego z 20-letnim doświadczeniem. Twój styl: twardo stąpający po ziemi, sceptyczny, ufający wyłącznie faktom i liczbom. Wyżej cenisz informację "brak danych" niż niesprawdzone plotki. Twoim zadaniem jest przygotowanie chłodnego, merytorycznego raportu dla inwestora, który nie ma czasu na codzienny szum informacyjny.
+
+# TASK
+Wykonaj research dla spółki z GPW lub NewConnect: ${ticker}.
+Przeszukaj Internet za pomocą web search, realizując poniższy PLAN SZUKANIA punkt po punkcie.
+
+# PLAN SZUKANIA
+
+### 1. Fakty, komunikaty ESPI i prasa fachowa
+- Źródła: bankier.pl, stooq.pl, gpwinfostrefa.pl, parkiet.com, rp.pl, biznes.pap.pl, wnp.pl, pb.pl, gpw.pl, infostrefa.pl
+- Zakres: ostatnie 7 dni
+- Priorytet: Oficjalne komunikaty spółki (ESPI/EBI) oraz kluczowe wywiady z zarządem
+- Zwróć: Max 3 najważniejsze wydarzenia opisane minimum na 3 zdania każde. Podaj nazwę źródła i datę (URL tylko jeśli masz pewność co do jego istnienia).
+
+### 2. Rekomendacje Domów Maklerskich
+- Źródła: Oficjalne strony biur maklerskich (DM BOŚ, mBank, PKO BP, Noble Securities itp.)
+- Zakres: ostatnie 6 miesięcy
+- Zasada: Tylko najświeższa rekomendacja od danej instytucji
+- Zwróć: Nazwa biura, data, zalecenie, cena docelowa oraz 2-3 zdania uzasadnienia
+
+### 3. Analizy wskaźnikowe i fora
+- Źródła: portalanaliz.pl, biznesradar.pl, stockwatch.pl, bankier.pl/forum
+- Zakres: ostatni miesiąc
+- Zadanie: Zidentyfikuj czy wskaźniki (C/Z, C/WK) uległy istotnej zmianie oraz jakie są 2 główne wątki dyskusji (merytoryczne, nie spam)
+
+### 4. Sentyment w Social Media
+- Zakres: ostatni miesiąc
+- Zadanie: Opisz dominującą narrację wokół spółki. Określ dominujący nastrój: Hype, Neutralny czy Panika. Nie cytuj konkretnych postów bez weryfikacji.
+
+### 5. Inne istotne źródła (Cross-check)
+- Zasada: Tylko informacje potwierdzone przez min. 2 niezależne źródła, których nie było wcześniej
+- Zakres: ostatnie 7 dni
+
+### 6. YouTube
+- Zadanie: Sprawdź czy pojawiły się materiały wideo dot. tej spółki. Podaj tytuły i kanały — nie cytuj treści których nie możesz zweryfikować.
+- Zakres: ostatnie 14 dni
+
+# OGÓLNE ZASADY (KRYTYCZNE)
+1. Jeśli w danym punkcie nie ma nowych informacji — napisz wyraźnie: "W wybranym okresie nie opublikowano istotnych informacji"
+2. Podawaj URL tylko jeśli masz pewność jego istnienia. Jeśli nie — podaj nazwę źródła i datę.
+3. Unikaj przymiotników ("świetne wyniki") — podawaj liczby i fakty
+4. Jeśli kilka mediów pisze o tym samym — podaj informację raz, wymieniając źródła po przecinku
+
+# FORMAT RAPORTU (Markdown)
+### Raport analityczny: ${ticker}
+**Data raportu:** [Dzisiejsza data]
+
+### [1] Fakty z prasy i komunikaty ESPI
+(Lista punktowa)
+
+### [2] Rekomendacje maklerskie
+(Tabela: Biuro | Data | Zalecenie | Cena Docelowa | Uzasadnienie)
+
+### [3] Analizy i głos społeczności
+(Krótki opis)
+
+### [4] Sentyment rynku
+(Opis narracji + skala: Hype / Neutralny / Panika)
+
+### [5] Pozostałe istotne informacje
+(Lista punktowa)
+
+### [6] YouTube
+(Tytuły i kanały lub: "Brak materiałów")
+
+**Sentyment Ogólny (Skala 1-5):** [1=skrajny pesymizm, 5=euforia]
+**Podsumowanie analityka:** (Jedno konkretne zdanie)`,
+
+  espi: (ticker) => `Wykonaj research dla spółki ${ticker} z GPW/NewConnect i wyszukaj wyłącznie oficjalne komunikaty ESPI i EBI opublikowane w ciągu ostatnich 14 dni.
+
+Źródła do sprawdzenia: gpwinfostrefa.pl, infostrefa.pl, biznes.pap.pl, bankier.pl, newconnect.pl
+
+Dla każdego komunikatu podaj:
+- Numer i typ raportu (ESPI/EBI)
+- Datę publikacji
+- Treść / streszczenie (minimum 3 zdania)
+- Nazwę źródła (URL tylko jeśli pewny)
+
+Jeśli w ostatnich 14 dniach nie opublikowano żadnych komunikatów — napisz to wprost. To jest kluczowy sygnał ciszy informacyjnej.
+
+Format: lista punktowa w Markdown. Bez przymiotników, tylko fakty i liczby.`,
+
+  rekomendacje: (ticker) => `Sprawdź czy któryś z polskich domów maklerskich wydał rekomendację dla spółki ${ticker} w ciągu ostatnich 6 miesięcy.
+
+Domy maklerskie do sprawdzenia: DM BOŚ, mBank Securities, PKO BP DM, Pekao Investment Banking, Noble Securities, BDM, Trigon DM, Erste Securities, Wood & Company.
+
+Dla każdej rekomendacji podaj:
+- Nazwa biura maklerskiego
+- Data wydania
+- Zalecenie (Kupuj / Akumuluj / Neutralnie / Redukuj / Sprzedaj)
+- Cena docelowa (PLN)
+- 2-3 zdania konkretnego uzasadnienia (dlaczego taka wycena)
+
+Jeśli brak rekomendacji — napisz wprost "Spółka nie posiada aktywnego pokrycia analitycznego" i podaj datę ostatniej rekomendacji jeśli jest dostępna.
+
+Format: tabela Markdown (Biuro | Data | Zalecenie | Cena docelowa | Uzasadnienie)`,
+
+  sentyment: (ticker) => `Oceń aktualny sentyment rynkowy wokół spółki ${ticker} z GPW/NewConnect.
+
+Sprawdź:
+1. Fora dyskusyjne: bankier.pl/forum, stockwatch.pl, biznesradar.pl — jakie są główne wątki dyskusji w ostatnim miesiącu? (merytoryczne, nie spam)
+2. Narracja medialna — jakie tematy dominują w ostatnich 2 tygodniach?
+3. Aktywność informacyjna — czy spółka publikuje regularnie, czy panuje cisza?
+
+Zasady:
+- Opisuj narrację ogólnie, nie cytuj konkretnych postów bez weryfikacji
+- Podawaj tylko informacje potwierdzone przez min. 2 źródła
+- Unikaj przymiotników — opisuj fakty i kierunki
+
+Zakończ oceną sentymentu na skali:
+- Hype (nadmierne oczekiwania)
+- Pozytywny (uzasadniony optymizm)
+- Neutralny (brak wyraźnego kierunku)
+- Negatywny (uzasadniony pesymizm)
+- Panika (nadmierne obawy)
+
+Format: Markdown, zwięźle.`
+};
+
+let state = {
+  spolki: [],
+  raporty: {},
+  activeSpolka: null,
+  activeTab: 'all',
+  addReportOpen: false,
+  currentPromptKey: null,
+  currentPromptText: ''
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('gpwmonitor_state');
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('gpwmonitor_state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+function init() {
+  loadState();
+  renderSpolkaList();
+  if (state.activeSpolka) {
+    showDetail(state.activeSpolka);
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+  document.getElementById('rDate').value = today();
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('pl-PL') + ' ' +
+    now.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('addForm');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) {
+    document.getElementById('newTicker').focus();
+  }
+}
+
+function addSpolka() {
+  const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
+  const name = document.getElementById('newName').value.trim();
+  const market = document.getElementById('newMarket').value;
+  const sektor = document.getElementById('newSektor').value.trim();
+
+  if (!ticker) return;
+
+  if (state.spolki.find(s => s.ticker === ticker)) {
+    showToast('Spółka już istnieje na liście');
+    return;
+  }
+
+  state.spolki.push({ ticker, name: name || ticker, market, sektor });
+  if (!state.raporty[ticker]) state.raporty[ticker] = [];
+  saveState();
+  renderSpolkaList();
+  toggleAddForm();
+  showDetail(ticker);
+
+  document.getElementById('newTicker').value = '';
+  document.getElementById('newName').value = '';
+  document.getElementById('newSektor').value = '';
+}
+
+function deleteSpolka(ticker, e) {
+  e.stopPropagation();
+  if (!confirm(`Usunąć ${ticker} i wszystkie jej raporty?`)) return;
+  state.spolki = state.spolki.filter(s => s.ticker !== ticker);
+  delete state.raporty[ticker];
+  if (state.activeSpolka === ticker) {
+    state.activeSpolka = null;
+    document.getElementById('detailView').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+  }
+  saveState();
+  renderSpolkaList();
+}
+
+function renderSpolkaList() {
+  const el = document.getElementById('spolkaList');
+  if (state.spolki.length === 0) {
+    el.innerHTML = '<div style="padding: 1rem 1.25rem; font-size: 12px; color: var(--text3);">Brak spółek. Dodaj pierwszą.</div>';
+    return;
+  }
+  el.innerHTML = state.spolki.map(s => {
+    const active = s.ticker === state.activeSpolka ? 'active' : '';
+    const cnt = (state.raporty[s.ticker] || []).length;
+    return `<div class="spolka-item ${active}" onclick="showDetail('${s.ticker}')">
+      <span class="spolka-ticker">${s.ticker}</span>
+      <span class="spolka-name">${s.name}</span>
+      <span class="spolka-market">${s.market}</span>
+      ${cnt > 0 ? `<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${cnt}</span>` : ''}
+      <button class="spolka-del" onclick="deleteSpolka('${s.ticker}', event)" title="Usuń">×</button>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(ticker) {
+  state.activeSpolka = ticker;
+  saveState();
+  renderSpolkaList();
+
+  const s = state.spolki.find(x => x.ticker === ticker);
+  if (!s) return;
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('detailView').style.display = 'flex';
+
+  document.getElementById('dTicker').textContent = s.ticker;
+  document.getElementById('dName').textContent = s.name || '—';
+
+  const badges = [];
+  badges.push(`<span class="badge badge-market">${s.market}</span>`);
+  if (s.sektor) badges.push(`<span class="badge badge-sektor">${s.sektor}</span>`);
+  document.getElementById('dBadges').innerHTML = badges.join('');
+
+  document.getElementById('promptPreview').classList.remove('open');
+  document.getElementById('copyBar').classList.remove('open');
+  state.currentPromptKey = null;
+
+  document.getElementById('addReportForm').classList.remove('open');
+  state.addReportOpen = false;
+
+  const notatka = localStorage.getItem('notatka_' + ticker) || '';
+  document.getElementById('notatkaText').value = notatka;
+
+  renderReports();
+}
+
+function selectPrompt(key) {
+  const ticker = state.activeSpolka;
+  if (!ticker) return;
+  state.currentPromptKey = key;
+  state.currentPromptText = PROMPTS[key](ticker);
+
+  const prev = document.getElementById('promptPreview');
+  prev.textContent = state.currentPromptText.substring(0, 400) + '...';
+  prev.classList.add('open');
+  document.getElementById('copyBar').classList.add('open');
+
+  const btn = document.getElementById('btnCopy');
+  btn.textContent = 'Kopiuj prompt do schowka';
+  btn.classList.remove('copied');
+}
+
+function copyPrompt() {
+  if (!state.currentPromptText) return;
+  navigator.clipboard.writeText(state.currentPromptText).then(() => {
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = 'Skopiowano!';
+    btn.classList.add('copied');
+    showToast('Prompt skopiowany — wklej do claude.ai');
+    setTimeout(() => {
+      btn.textContent = 'Kopiuj prompt do schowka';
+      btn.classList.remove('copied');
+    }, 3000);
+  });
+}
+
+function switchTab(tab, el) {
+  state.activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderReports();
+}
+
+function toggleAddReport() {
+  state.addReportOpen = !state.addReportOpen;
+  document.getElementById('addReportForm').classList.toggle('open', state.addReportOpen);
+  if (state.addReportOpen) {
+    document.getElementById('rDate').value = today();
+    document.getElementById('rContent').focus();
+  }
+}
+
+function saveReport() {
+  const ticker = state.activeSpolka;
+  if (!ticker) return;
+  const content = document.getElementById('rContent').value.trim();
+  if (!content) { showToast('Wklej treść raportu'); return; }
+
+  const report = {
+    id: Date.now(),
+    type: document.getElementById('rType').value,
+    sentiment: parseInt(document.getElementById('rSentiment').value),
+    date: document.getElementById('rDate').value,
+    content
+  };
+
+  if (!state.raporty[ticker]) state.raporty[ticker] = [];
+  state.raporty[ticker].unshift(report);
+  saveState();
+
+  document.getElementById('rContent').value = '';
+  toggleAddReport();
+  renderReports();
+  showToast('Raport zapisany');
+}
+
+function deleteReport(id) {
+  const ticker = state.activeSpolka;
+  if (!ticker) return;
+  state.raporty[ticker] = state.raporty[ticker].filter(r => r.id !== id);
+  saveState();
+  renderReports();
+}
+
+function toggleReportBody(id) {
+  const el = document.getElementById('rb_' + id);
+  el.classList.toggle('open');
+}
+
+function renderReports() {
+  const ticker = state.activeSpolka;
+  const all = state.raporty[ticker] || [];
+
+  const counts = {
+    all: all.length,
+    pelny: all.filter(r => r.type === 'pelny').length,
+    espi: all.filter(r => r.type === 'espi').length,
+    rekomendacje: all.filter(r => r.type === 'rekomendacje').length
+  };
+  document.getElementById('tcAll').textContent = counts.all;
+  document.getElementById('tcPelny').textContent = counts.pelny;
+  document.getElementById('tcEspi').textContent = counts.espi;
+  document.getElementById('tcRek').textContent = counts.rekomendacje;
+
+  const filtered = state.activeTab === 'all' ? all : all.filter(r => r.type === state.activeTab);
+
+  const container = document.getElementById('reportsList');
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="no-reports">Brak zapisanych raportów<br><span style="font-size:11px;color:var(--text3)">Wygeneruj prompt, uruchom w Claude, wklej wynik</span></div>';
+    return;
+  }
+
+  const typeLabels = { pelny: 'Raport pełny', espi: 'ESPI/EBI', rekomendacje: 'Rekomendacje', sentyment: 'Sentyment', inne: 'Inne' };
+  const typeClass = { pelny: 'rt-pelny', espi: 'rt-espi', rekomendacje: 'rt-rekomendacje', sentyment: 'rt-sentyment', inne: 'rt-inne' };
+
+  container.innerHTML = filtered.map(r => `
+    <div class="report-card">
+      <div class="report-card-header" onclick="toggleReportBody(${r.id})">
+        <div class="report-meta">
+          <span class="report-type-badge ${typeClass[r.type] || 'rt-inne'}">${typeLabels[r.type] || r.type}</span>
+          <span class="report-date">${r.date}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="report-sentiment">
+            <div class="sentiment-dot s${r.sentiment}"></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">${r.sentiment}/5</span>
+          </div>
+          <div class="report-actions">
+            <button class="btn-icon" onclick="copyReportContent(${r.id}, event)" title="Kopiuj treść">⎘</button>
+            <button class="btn-icon del" onclick="deleteReport(${r.id}); event.stopPropagation();" title="Usuń">×</button>
+          </div>
+        </div>
+      </div>
+      <div class="report-body" id="rb_${r.id}">
+        <pre style="white-space:pre-wrap;font-family:var(--sans);font-size:13px;color:var(--text2);line-height:1.7;">${escHtml(r.content)}</pre>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyReportContent(id, e) {
+  e.stopPropagation();
+  const ticker = state.activeSpolka;
+  const report = (state.raporty[ticker] || []).find(r => r.id === id);
+  if (!report) return;
+  navigator.clipboard.writeText(report.content).then(() => showToast('Treść raportu skopiowana'));
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleNotatka() {
+  const el = document.getElementById('notatkaEdit');
+  const arrow = document.getElementById('notatkaArrow');
+  el.classList.toggle('open');
+  arrow.textContent = el.classList.contains('open') ? '▾' : '▸';
+}
+
+function saveNotatka() {
+  const ticker = state.activeSpolka;
+  if (!ticker) return;
+  const val = document.getElementById('notatkaText').value;
+  localStorage.setItem('notatka_' + ticker, val);
+  showToast('Notatka zapisana');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.getElementById('newTicker').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addSpolka();
+});
+
+init();
+</script>
+</body>
+</html>
